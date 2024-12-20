@@ -1,0 +1,10 @@
+runtime: python39
+entrypoint: gunicorn -b :$PORT main:app
+
+handlers:
+- url: /
+  static_files: templates/index.html
+  upload: templates/index.html
+
+- url: /.*
+  script: auto
