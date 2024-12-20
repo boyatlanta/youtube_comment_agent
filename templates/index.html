@@ -1,1 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Comment Agent</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            max-width: 900px;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        input, select, button {
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result, .approval-section {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            border-radius: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+            vertical-align: top; /* Aligns textareas properly */
+        }
+        th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+        .generate-reply-column, .edit-reply-column {
+            width: 40%; /* Ensure "Edit Reply" matches "Generated Reply" */
+        }
+        .approve-column {
+            width: 20%;
+        }
+        textarea {
+            width: 100%; /* Textarea fills the column */
+            height: 150px; /* Adjustable height */
+            padding: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: vertical; /* Allow vertical resizing */
+        }
+        .center {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .error {
+            color: red;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 300px;
+            text-align: center;
+            border-radius: 10px;
+        }
+        .modal-content button {
+            margin: 10px;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        .modal-content button:hover {
+            background-color: #45a049;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <h1>YouTube Comment Agent</h1>
+    <form id="youtubeForm">
+        <label for="youtubeUrl">Enter YouTube Video URL:</label>
+        <input type="text" id="youtubeUrl" placeholder="https://www.youtube.com/watch?v=VIDEO_ID" required>
+        
+        <label for="mood">Select Mood:</label>
+        <select id="mood" name="mood" required>
+            <option value="funny">Funny</option>
+            <option value="casual">Casual</option>
+            <option value="professional">Professional</option>
+        </select>
 
+        <input type="hidden" id="role" name="role">
+        <button type="button" onclick="openRolePopup()">Select Role</button>
+        <button type="submit">Submit</button>
+    </form>
+
+    <div id="result" class="result" style="display: none;"></div>
+
+    <!-- Approval Section -->
+    <div id="approvalSection" class="approval-section" style="display: none;">
+        <h2>Review and Approve Replies</h2>
+        <form id="approvalForm">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Comment</th>
+                        <th class="generate-reply-column">Generated Reply</th>
+                        <th class="edit-reply-column">Edit Reply</th>
+                        <th class="approve-column">Approve</th>
+                    </tr>
+                </thead>
+                <tbody id="approvalTableBody">
+                    <!-- Replies will be dynamically added here -->
+                </tbody>
+            </table>
+            <div class="center">
+                <button type="submit">Submit Approved Replies</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Modal for Role Selection -->
+    <div id="roleModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeRolePopup()">&times;</span>
+            <h2>Select Role</h2>
+            <button onclick="setRole('owner')">Owner</button>
+            <button onclick="setRole('community')">Community Member</button>
+        </div>
+    </div>
+
+    <script>
+        const pendingReplies = [];
+
+        function openRolePopup() {
+            document.getElementById('roleModal').style.display = 'block';
+        }
+
+        function closeRolePopup() {
+            document.getElementById('roleModal').style.display = 'none';
+        }
+
+        function setRole(role) {
+            document.getElementById('role').value = role;
+            alert(`Role set to: ${role}`);
+            closeRolePopup();
+        }
+
+        document.getElementById('youtubeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const youtubeUrl = document.getElementById('youtubeUrl').value;
+            const role = document.getElementById('role').value;
+            const mood = document.getElementById('mood').value;
+            const resultDiv = document.getElementById('result');
+            const approvalSection = document.getElementById('approvalSection');
+            const approvalTableBody = document.getElementById('approvalTableBody');
+
+            resultDiv.style.display = 'none';
+            approvalSection.style.display = 'none';
+            resultDiv.innerHTML = '';
+            approvalTableBody.innerHTML = '';
+
+            if (!youtubeUrl) {
+                alert('Please enter a YouTube video URL.');
+                return;
+            }
+
+            if (!role) {
+                alert('Please select a role before submitting.');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: youtubeUrl, role, mood }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    pendingReplies.push(...data.pending_replies);
+                    pendingReplies.forEach((reply, index) => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${reply.commentText}</td>
+                            <td>${reply.generatedReply}</td>
+                            <td><textarea name="approvedReply_${index}">${reply.generatedReply}</textarea></td>
+                            <td class="center"><input type="checkbox" name="approve_${index}"></td>
+                        `;
+                        approvalTableBody.appendChild(row);
+                    });
+                    approvalSection.style.display = 'block';
+                } else {
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = `<h3>Error:</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `<h3>Error:</h3><pre>${error.message}</pre>`;
+            }
+        });
+
+        document.getElementById('approvalForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const approvedReplies = pendingReplies.map((reply, index) => ({
+                commentId: reply.commentId,
+                approvedReply: formData.get(`approvedReply_${index}`)?.trim(),
+                approve: formData.get(`approve_${index}`) === 'on',
+            })).filter(reply => reply.approve);
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/approve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ approvedReplies }),
+                });
+
+                const data = await response.json();
+                alert(data.message || 'Replies approved and submitted!');
+                pendingReplies.length = 0;
+                approvalSection.style.display = 'none';
+            } catch (error) {
+                alert(`Error submitting approved replies: ${error.message}`);
+            }
+        });
+    </script>
+</body>
+</html>
