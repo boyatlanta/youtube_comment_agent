@@ -52,6 +52,14 @@ def process():
     url = data.get("url")
     return jsonify({"message": "Received URL", "url": url})
 
+@app.route('/approve', methods=['POST'])
+def approve():
+    data = request.get_json()
+    approved_replies = data.get("approvedReplies", [])
+    return jsonify({"message": f"Approved {len(approved_replies)} replies!"})
+
+if __name__ == "__main__":
+    app.run(debug=True)
 
 def process_youtube_comments():
     """
