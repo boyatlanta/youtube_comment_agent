@@ -1,9 +1,7 @@
-
 flask
+flask-cors
 gunicorn
 google-api-python-client
-
-
 
 aiohttp==3.9.5
 aiosignal==1.3.1
