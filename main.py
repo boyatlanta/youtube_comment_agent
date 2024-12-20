@@ -7,6 +7,7 @@ from youtube_auth import authenticate_youtube_api
 from youtube_comments import fetch_comments, post_reply
 from googleapiclient.discovery import build
 import time
+from flask_cors import CORS
 
 # Set API keys and URLs
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "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")  # Ensure this is set in your environment
