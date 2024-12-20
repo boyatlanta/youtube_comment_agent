@@ -47,6 +47,10 @@ pending_replies = []
 
 
 @app.route('/process', methods=['POST'])
+def process():
+    data = request.get_json()
+    url = data.get("url")
+    return jsonify({"message": "Received URL", "url": url})
 
 
 def process_youtube_comments():
