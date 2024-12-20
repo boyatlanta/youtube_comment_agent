@@ -28,6 +28,7 @@ processed_comment_ids = set()
 
 # Flask App
 app = Flask(__name__)
+CORS(app)  # Enable CORS
 
 @app.route('/')
 def home():
@@ -49,14 +50,42 @@ pending_replies = []
 
 @app.route('/process', methods=['POST'])
 def process():
+    """
+    Mock `/process` endpoint to test Vercel deployment.
+    """
     data = request.get_json()
     url = data.get("url")
-    return jsonify({"message": "Received URL", "url": url})
+    mood = data.get("mood", "casual")
+    role = data.get("role", "community")
+
+    # Log request for debugging
+    print(f"Received URL: {url}, Mood: {mood}, Role: {role}")
+
+    # Return a mock response
+    return jsonify({
+        "message": "Processed comments successfully!",
+        "pending_replies": [
+            {
+                "commentId": "12345",
+                "commentText": "This is a mock comment.",
+                "generatedReply": f"This is a mock reply in {mood} mood as a {role}.",
+                "approvedReply": None,
+                "author": "AuthorChannel123"
+            }
+        ]
+    })
 
 @app.route('/approve', methods=['POST'])
 def approve():
+    """
+    Mock `/approve` endpoint to test Vercel deployment.
+    """
     data = request.get_json()
     approved_replies = data.get("approvedReplies", [])
+
+    # Log approval details for debugging
+    print(f"Approved Replies: {approved_replies}")
+
     return jsonify({"message": f"Approved {len(approved_replies)} replies!"})
 
 if __name__ == "__main__":
