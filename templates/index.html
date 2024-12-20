@@ -220,7 +220,8 @@
             }
 
             try {
-                const response = await fetch('http://127.0.0.1:5000/process', {
+                const response = await fetch('const response = await fetch('https://your-vercel-url.vercel.app/process', {
+', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url: youtubeUrl, role, mood }),
@@ -262,7 +263,8 @@
             })).filter(reply => reply.approve);
 
             try {
-                const response = await fetch('http://127.0.0.1:5000/approve', {
+                const response = await fetch('const response = await fetch('https://your-vercel-url.vercel.app/process', {
+', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ approvedReplies }),
