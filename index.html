@@ -226,7 +226,14 @@
                     body: JSON.stringify({ url: youtubeUrl, role, mood }),
                 });
 
-                const data = await response.json();
+                let data;
+            try {
+                const responseText = await response.text(); // Read response as text
+                data = JSON.parse(responseText); // Parse JSON manually
+            } catch (error) {
+                throw new Error(`Failed to parse JSON: ${error.message}`);
+            }
+
 
                 if (response.ok) {
                     pendingReplies.push(...data.pending_replies);
