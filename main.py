@@ -91,6 +91,7 @@ def approve():
 if __name__ == "__main__":
     app.run(debug=True)
 
+@app.route('/process', methods=['POST'])
 def process_youtube_comments():
     """
     Fetch comments (including subcomments), filter out comments already answered by the bot,
