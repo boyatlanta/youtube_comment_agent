@@ -1,7 +1,7 @@
-{
-  "version": 2,
-  "routes": [
-    { "src": "/process", "dest": "main.py" },
-    { "src": "/approve", "dest": "main.py" }
-  ]
-}
+"builds": [
+  { "src": "main.py", "use": "@vercel/python" }
+],
+"routes": [
+  { "src": "/process", "dest": "main.py" },
+  { "src": "/approve", "dest": "main.py" }
+]
