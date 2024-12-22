@@ -9,6 +9,8 @@ from googleapiclient.discovery import build
 import time
 from flask_cors import CORS
 
+CORS(app, resources={r"/*": {"origins": ["https://youtube-comment-agent.vercel.app"]}})
+
 # Set API keys and URLs
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "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")  # Ensure this is set in your environment
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "AIzaSyA8qclHhZNDRlaJ2ZBUmy-3ocO638rhXFE")  # Default fallback for YouTube API key
