@@ -8,7 +8,7 @@ from youtube_comments import fetch_comments, post_reply
 from googleapiclient.discovery import build
 import time
 from flask_cors import CORS
-CORS(app)
+
 
 
 # Set API keys and URLs
@@ -30,7 +30,7 @@ processed_comment_ids = set()
 
 # Flask App
 app = Flask(__name__)
-CORS(app)  # Enable CORS
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 
 @app.route('/')
