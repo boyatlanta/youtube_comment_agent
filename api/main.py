@@ -6,10 +6,15 @@ from flask import Flask, request, jsonify, render_template
 from youtube_auth import authenticate_youtube_api
 from youtube_comments import fetch_comments, post_reply
 from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import Flow
 import time
 from flask_cors import CORS
 CORS(app)
-
+flow = Flow.from_client_secrets_file(
+    'client_secrets.json',
+    scopes=['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email'],
+    redirect_uri='https://youtube-comment-agent.vercel.app/callback'  # Make sure this matches!
+)
 
 # Set API keys and URLs
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "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")  # Ensure this is set in your environment
