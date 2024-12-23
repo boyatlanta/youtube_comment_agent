@@ -1,7 +1,6 @@
 {
   "version": 2,
   "routes": [
-    { "src": "/", "dest": "main.py" },
     { "src": "/process", "dest": "main.py" },
     { "src": "/approve", "dest": "main.py" },
     { "src": "/callback", "dest": "main.py" },
