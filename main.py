@@ -32,12 +32,39 @@ processed_comment_ids = set()
 app = Flask(__name__)
 CORS(app)  # Enable CORS
 
+
 @app.route('/')
 def home():
     """
     Render the HTML UI for the YouTube Comment Agent.
     """
     return render_template('index.html')
+
+@app.route('/callback')
+def oauth2callback():
+    # Initialize the flow using the client_secrets.json
+    flow = Flow.from_client_secrets_file(
+        'client_secrets.json',
+        scopes=['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email'],
+        redirect_uri='https://youtube-comment-agent.vercel.app/callback'
+    )
+    # Fetch the authorization response
+    flow.fetch_token(authorization_response=request.url)
+    credentials = flow.credentials
+
+    # Use the credentials to access user info or save them
+    session['credentials'] = {
+        'token': credentials.token,
+        'refresh_token': credentials.refresh_token,
+        'token_uri': credentials.token_uri,
+        'client_id': credentials.client_id,
+        'client_secret': credentials.client_secret,
+        'scopes': credentials.scopes
+    }
+    return "Authentication successful!"
+
+if __name__ == '__main__':
+    app.run()
 
 @app.route('/favicon.ico')
 def favicon():
