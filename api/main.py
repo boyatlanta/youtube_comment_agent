@@ -13,7 +13,7 @@ CORS(app)
 flow = Flow.from_client_secrets_file(
     'client_secrets.json',
     scopes=['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email'],
-    redirect_uri='https://youtube-comment-agent.vercel.app/callback'  # Make sure this matches!
+    redirect_uri='https://youtube-comment-agent.vercel.app/api/callback'  # Make sure this matches!
 )
 
 # Set API keys and URLs
@@ -49,7 +49,7 @@ def home():
 from flask import Flask, request, redirect
 
 
-@app.route('/callback', methods=['GET'])
+@app.route('/api/callback', methods=['GET'])
 def callback():
     return "Callback route is working!"
 
@@ -68,7 +68,7 @@ def favicon():
 pending_replies = []
 
 
-@app.route('/process', methods=['POST'])
+@app.route('/api/process', methods=['POST'])
 def process():
     """
     Mock `/process` endpoint to test Vercel deployment.
@@ -95,7 +95,7 @@ def process():
         ]
     })
 
-@app.route('/approve', methods=['POST'])
+@app.route('/api/approve', methods=['POST'])
 def approve():
     """
     Mock `/approve` endpoint to test Vercel deployment.
@@ -111,7 +111,7 @@ def approve():
 if __name__ == "__main__":
     app.run(debug=True)
 
-@app.route('/process', methods=['POST'])
+@app.route('/api/process', methods=['POST'])
 def process_youtube_comments():
     """
     Fetch comments (including subcomments), filter out comments already answered by the bot,
