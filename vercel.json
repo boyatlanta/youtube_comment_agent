@@ -1,9 +1,3 @@
 {
-  "version": 2,
-  "routes": [
-    { "src": "/process", "dest": "main.py" },
-    { "src": "/approve", "dest": "main.py" },
-    { "src": "/callback", "dest": "main.py" },
-    { "src": "/favicon.ico", "dest": "main.py" }
-  ]
+  "version": 2
 }
