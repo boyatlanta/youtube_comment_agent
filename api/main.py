@@ -29,7 +29,7 @@ print(f"OpenAI API Key being used: {openai.api_key}")  # Debug line
 processed_comment_ids = set()
 
 # Flask App
-app = Flask(__name__, template_folder="../templates")
+app = Flask(__name__)  # Default template folder (at the same level as `api/`)
 
 CORS(app)  # Enable CORS
 
