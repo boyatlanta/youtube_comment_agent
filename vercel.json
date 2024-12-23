@@ -1,9 +1,8 @@
 {
   "version": 2,
+  
   "routes": [
-    {
-      "src": "/process",
-      "dest": "api/process.py"
-    }
+    { "src": "/api/(.*)", "dest": "api/main.py" }
   ]
+
 }
