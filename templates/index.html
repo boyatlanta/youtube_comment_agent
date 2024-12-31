@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YouTube Comment Agent</title>
     <style>
+        /* Your existing styles remain unchanged */
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
@@ -50,33 +51,27 @@
             border: 1px solid #ddd;
             padding: 12px;
             text-align: left;
-            vertical-align: top;
+            vertical-align: top; /* Aligns textareas properly */
         }
         th {
             background-color: #f4f4f4;
             font-weight: bold;
         }
         .generate-reply-column, .edit-reply-column {
-            width: 40%;
+            width: 40%; /* Ensure "Edit Reply" matches "Generated Reply" */
         }
         .approve-column {
             width: 20%;
         }
         textarea {
-           
-            width: 100%; /* Ensures the textarea spans the full width of the column */
-            max-width: 600px; /* Prevents it from getting too wide */
-            height: 300px; /* Increase height for better editing space */
+            width: 100%; /* Textarea fills the column */
+            height: 150px; /* Adjustable height */
             padding: 10px;
             font-size: 14px;
             line-height: 1.5;
             border: 1px solid #ccc;
             border-radius: 5px;
-            resize: vertical; /* Allows users to manually resize vertically */
-            background-color: #f9f9f9; /* Light background for better readability */
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for a lifted effect */
-}
-
+            resize: vertical; /* Allow vertical resizing */
         }
         .center {
             text-align: center;
@@ -128,14 +123,10 @@
         .close:hover {
             color: black;
         }
-        .highlight {
-            font-weight: bold;
-            color: #4CAF50;
-        }
     </style>
 </head>
 <body>
-    <h1>YouTube Comment Agent</h1>
+    <h1>YouTube Comment Agent ai</h1>
     <form id="youtubeForm">
         <label for="youtubeUrl">Enter YouTube Video URL:</label>
         <input type="text" id="youtubeUrl" placeholder="https://www.youtube.com/watch?v=VIDEO_ID" required>
@@ -149,23 +140,12 @@
 
         <input type="hidden" id="role" name="role">
         <button type="button" onclick="openRolePopup()">Select Role</button>
-        <p>Selected Role: <span id="selectedRoleDisplay" class="highlight">None</span></p>
         <button type="submit">Submit</button>
     </form>
 
-<!-- New section for fetching channel-level comments -->
-    <div>
-        <h2>Fetch Comments by Channel</h2>
-        <form id="channelForm">
-            <label for="channelId">Enter YouTube Channel ID:</label>
-            <input type="text" id="channelId" placeholder="Enter Channel ID" required>
-            <button type="button" onclick="fetchChannelComments()">Fetch Channel Comments</button>
-        </form>
-    </div>
-
-
     <div id="result" class="result" style="display: none;"></div>
 
+    <!-- Approval Section -->
     <div id="approvalSection" class="approval-section" style="display: none;">
         <h2>Review and Approve Replies</h2>
         <form id="approvalForm">
@@ -178,7 +158,9 @@
                         <th class="approve-column">Approve</th>
                     </tr>
                 </thead>
-                <tbody id="approvalTableBody"></tbody>
+                <tbody id="approvalTableBody">
+                    <!-- Replies will be dynamically added here -->
+                </tbody>
             </table>
             <div class="center">
                 <button type="submit">Submit Approved Replies</button>
@@ -209,7 +191,7 @@
 
         function setRole(role) {
             document.getElementById('role').value = role;
-            document.getElementById('selectedRoleDisplay').textContent = role === 'owner' ? 'Owner' : 'Community Member';
+            alert(`Role set to: ${role}`);
             closeRolePopup();
         }
 
@@ -239,7 +221,7 @@
             }
 
             try {
-                const response = await fetch('http://127.0.0.1:5000/process', {
+                const response = await fetch('/api/process', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url: youtubeUrl, role, mood }),
@@ -281,7 +263,7 @@
             })).filter(reply => reply.approve);
 
             try {
-                const response = await fetch('http://127.0.0.1:5000/approve', {
+                const response = await fetch('/api/approve', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ approvedReplies }),
@@ -295,52 +277,6 @@
                 alert(`Error submitting approved replies: ${error.message}`);
             }
         });
-
-        function fetchChannelComments() {
-        const channelId = document.getElementById('channelId').value;
-        const resultDiv = document.getElementById('result');
-        const approvalSection = document.getElementById('approvalSection');
-        const approvalTableBody = document.getElementById('approvalTableBody');
-
-        resultDiv.style.display = 'none';
-        approvalSection.style.display = 'none';
-        resultDiv.innerHTML = '';
-        approvalTableBody.innerHTML = '';
-
-        if (!channelId) {
-            alert('Please enter a valid YouTube Channel ID.');
-            return;
-        }
-
-        fetch(`http://127.0.0.1:5000/fetch-channel-comments?channelId=${channelId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.pending_replies && data.pending_replies.length > 0) {
-                    data.pending_replies.forEach((reply, index) => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${reply.text}</td>
-                            <td><textarea name="approvedReply_${index}"></textarea></td>
-                            <td>${reply.author}</td>
-                            <td class="center"><input type="checkbox" name="approve_${index}"></td>
-                        `;
-                        approvalTableBody.appendChild(row);
-                    });
-                    approvalSection.style.display = 'block';
-                } else {
-                    resultDiv.style.display = 'block';
-                    resultDiv.innerHTML = '<h3>No comments found for this channel.</h3>';
-                }
-            })
-            .catch(error => {
-                resultDiv.style.display = 'block';
-                resultDiv.innerHTML = `<h3>Error:</h3><pre>${error.message}</pre>`;
-                console.error('Error fetching channel comments:', error);
-            });
-    }
-
-
-
     </script>
 </body>
 </html>
