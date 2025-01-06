@@ -1,55 +1,32 @@
-# File: app.py
 
-import os
 import openai
 from flask import Flask, request, jsonify, render_template
 from youtube_auth import authenticate_youtube_api
-from youtube_comments import fetch_comments, post_reply
-from googleapiclient.discovery import build
+from youtube_comments import fetch_comments_with_replies, post_reply, generate_reply
+from youtube_utils import fetch_all_video_ids_from_channel  # Assuming this exists
 import time
-from flask_cors import CORS
 
+# Set API keys directly
+openai.api_key = "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"  # Replace with your actual OpenAI API key
+YOUTUBE_API_KEY = "AIzaSyA8qclHhZNDRlaJ2ZBUmy-3ocO638rhXFE"  # Replace with your actual YouTube API key
 
-
-# Set API keys and URLs
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "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")  # Ensure this is set in your environment
-YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "AIzaSyA8qclHhZNDRlaJ2ZBUmy-3ocO638rhXFE")  # Default fallback for YouTube API key
-ZAPIER_WEBHOOK_URL = os.getenv(
-    "ZAPIER_WEBHOOK_URL", "https://hooks.zapier.com/hooks/catch/20851872/2it5auu/"
-)  # Replace with your Zapier webhook URL
-
-if not OPENAI_API_KEY or not YOUTUBE_API_KEY:
-    raise EnvironmentError("Missing API keys. Ensure YOUTUBE_API_KEY and OPENAI_API_KEY are set in the environment.")
-
-# Set OpenAI API key
-openai.api_key = OPENAI_API_KEY
-print(f"OpenAI API Key being used: {openai.api_key}")  # Debug line
+# Check for missing API keys
+if not openai.api_key or not YOUTUBE_API_KEY:
+    raise EnvironmentError("Missing API keys. Ensure both OPENAI_API_KEY and YOUTUBE_API_KEY are set.")
 
 # Global set to store processed comment IDs
 processed_comment_ids = set()
 
-# Flask App
+# Initialize Flask App
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
 
-
-@app.route('/')
+@app.route("/")
 def home():
-    """
-    Render the HTML UI for the YouTube Comment Agent.
-    """
-    return render_template('index.html')
-
-from flask import Flask, request, redirect
-
-
-@app.route('/callback', methods=['GET'])
-def callback():
-    return "Callback route is working!"
-
-if __name__ == "__main__":
-    app.run()
-
+    try:
+        return render_template("index.html")
+    except Exception as e:
+        return jsonify({"error": f"Error rendering template: {e}"}), 500
+        
 
 @app.route('/favicon.ico')
 def favicon():
@@ -61,51 +38,55 @@ def favicon():
 # In-memory storage for replies awaiting approval
 pending_replies = []
 
+@app.route('/callback')
+def oauth2callback():
+    # Get the authorization code from the query string
+    code = request.args.get('code')
+    if not code:
+        return jsonify({"error": "Authorization code not provided"}), 400
 
-@app.route('/process', methods=['POST'])
-def process():
-    """
-    Mock `/process` endpoint to test Vercel deployment.
-    """
-    data = request.get_json()
-    url = data.get("url")
-    mood = data.get("mood", "casual")
-    role = data.get("role", "community")
+    # Exchange the authorization code for access and refresh tokens
+    token_url = 'https://oauth2.googleapis.com/token'
+    payload = {
+        'code': code,
+        'client_id': '83454611538-dgdso66evbooi31ovv5hj9pdj0mi01l8.apps.googleusercontent.com',  # Replace with your actual Client ID
+        'client_secret': 'YOUR_CLIENT_SECRET',  # Replace with your actual Client Secret
+        'redirect_uri': 'http://localhost:8080/callback',  # Must match redirect URI in frontend
+        'grant_type': 'authorization_code'
+    }
 
-    # Log request for debugging
-    print(f"Received URL: {url}, Mood: {mood}, Role: {role}")
+    try:
+        response = requests.post(token_url, data=payload)
+        response.raise_for_status()
+        token_data = response.json()
 
-    # Return a mock response
-    return jsonify({
-        "message": "Processed comments successfully!",
-        "pending_replies": [
-            {
-                "commentId": "12345",
-                "commentText": "This is a mock comment.",
-                "generatedReply": f"This is a mock reply in {mood} mood as a {role}.",
-                "approvedReply": None,
-                "author": "AuthorChannel123"
-            }
-        ]
-    })
+        # Return or process tokens as needed
+        return jsonify(token_data)
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 400
 
-@app.route('/approve', methods=['POST'])
-def approve():
-    """
-    Mock `/approve` endpoint to test Vercel deployment.
-    """
-    data = request.get_json()
-    approved_replies = data.get("approvedReplies", [])
 
-    # Log approval details for debugging
-    print(f"Approved Replies: {approved_replies}")
 
-    return jsonify({"message": f"Approved {len(approved_replies)} replies!"})
+@app.route('/fetch-channel-comments', methods=['GET'])
+def fetch_channel_comments():
+    channel_id = request.args.get('channelId')
+    if not channel_id:
+        return jsonify({"error": "Channel ID is required"}), 400
 
-if __name__ == "__main__":
-    app.run(debug=True)
+    try:
+        # Fetch video IDs and their comments
+        video_ids = fetch_all_video_ids_from_channel(channel_id)
+        all_comments = []
+        for video_id in video_ids:
+            comments = fetch_comments_with_replies(video_id)
+            all_comments.extend(comments)
 
-@app.route('/process', methods=['POST'])
+        return jsonify({"pending_replies": all_comments})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/process', methods=['POST'])
 def process_youtube_comments():
     """
     Fetch comments (including subcomments), filter out comments already answered by the bot,
@@ -136,12 +117,27 @@ def process_youtube_comments():
         bot_channel_id = channel_response["items"][0]["id"]
         print(f"Bot's channel ID: {bot_channel_id}")
 
-        # Fetch comments from the YouTube video
-        comments = fetch_comments_with_replies(youtube, video_id, bot_channel_id)
+        comments = []
+
+
+        if video_url:
+            # Process for a specific video
+            video_id = extract_video_id(video_url)
+            if not video_id:
+                return jsonify({"error": "Invalid YouTube video URL"}), 400
+
+            comments = fetch_comments_with_replies(youtube, video_id)
+
+        elif channel_id:
+            # Process for all videos in a channel
+            video_ids = fetch_all_video_ids_from_channel(youtube, channel_id)
+            for video_id in video_ids:
+                video_comments = fetch_comments_with_replies(youtube, video_id)
+                comments.extend(video_comments)
 
         if not comments:
-            print("No comments found on the video.")
-            return jsonify({"error": "No comments found on the video"}), 404
+            print("No comments found.")
+            return jsonify({"error": "No comments found."}), 404
 
         # Iterate through fetched comments
         for comment in comments:
@@ -151,11 +147,6 @@ def process_youtube_comments():
                 author_channel_id = comment["authorChannelId"]
                 comment_text = comment["text"]
                 already_replied_by_bot = comment["alreadyRepliedByBot"]
-
-                # Skip duplicate comments
-                if comment_id in processed_comment_ids:
-                    print(f"Skipping duplicate comment ID: {comment_id}")
-                    continue
 
                 # Skip comments made by the bot itself if role is "owner"
                 if role == "owner" and author_channel_id == bot_channel_id:
@@ -196,9 +187,6 @@ def process_youtube_comments():
                     "author": author_channel_id
                 })
 
-                # Mark the comment as processed after successful handling
-                processed_comment_ids.add(comment_id)
-
             except Exception as e:
                 print(f"Error processing comment: {comment}. Error: {e}")
 
@@ -212,27 +200,7 @@ def process_youtube_comments():
         return jsonify({"error": str(e)}), 500
 
 
-def already_replied_by_bot(replies, bot_channel_id):
-    """
-    Checks if the bot has already replied to a given comment.
-    Args:
-        replies (list): List of reply objects under a comment.
-        bot_channel_id (str): The bot's YouTube channel ID.
-    Returns:
-        bool: True if the bot has replied to the comment, False otherwise.
-    """
-    if not replies:
-        return False  # No replies exist
-
-    for reply in replies:
-        reply_author_id = reply["snippet"]["authorChannelId"]["value"]
-        if reply_author_id == bot_channel_id:
-            return True  # Bot has replied
-
-    return False  # No reply from the bot
-
-
-def fetch_comments_with_replies(youtube, video_id, bot_channel_id):
+def fetch_comments_with_replies(youtube, video_id):
     """
     Fetch comments and their replies from the YouTube video and mark those already replied by the bot.
     """
@@ -249,23 +217,21 @@ def fetch_comments_with_replies(youtube, video_id, bot_channel_id):
             response = request.execute()
             for item in response.get("items", []):
                 snippet = item["snippet"]["topLevelComment"]["snippet"]
-                comment_id = item["id"]
-
-                # Skip comments already processed
-                if comment_id in processed_comment_ids:
-                    print(f"Skipping duplicate comment ID: {comment_id}")
-                    continue
 
                 # Check if the bot has already replied to this comment
-                replies = item.get("replies", {}).get("comments", [])
-                already_replied = already_replied_by_bot(replies, bot_channel_id)
+                already_replied_by_bot = False
+                if "replies" in item:
+                    for reply in item["replies"]["comments"]:
+                        reply_author_id = reply["snippet"]["authorChannelId"]["value"]
+                        if reply_author_id == snippet["authorChannelId"]:
+                            already_replied_by_bot = True
+                            break
 
-                # Add to comments list
                 comments.append({
-                    "commentId": comment_id,
+                    "commentId": item["id"],
                     "text": snippet["textDisplay"],
                     "authorChannelId": snippet["authorChannelId"]["value"],
-                    "alreadyRepliedByBot": already_replied
+                    "alreadyRepliedByBot": already_replied_by_bot
                 })
 
             request = youtube.commentThreads().list_next(request, response)
@@ -277,8 +243,7 @@ def fetch_comments_with_replies(youtube, video_id, bot_channel_id):
 
 
 
-
-@app.route('/approve', methods=['POST'])
+@app.route('/api/approve', methods=['POST'])
 def approve_replies():
     """
     Process approved replies and post them to YouTube.
@@ -342,23 +307,42 @@ def extract_video_id(url):
 
 
 
+from openai import Client  # Import the updated Client
+from flask import Flask  # Assuming Flask is used
+import os
+
+# Initialize OpenAI Client with API key
+client = Client(api_key="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")  # Replace with your actual key
+
 def generate_reply(comment_text, role, mood="casual", append_signature=False):
     """
-    Generate a reply to a YouTube comment using OpenAI GPT based on the user's role and mood.
-    Optionally append 'Cheers, Abhi' as a signature if the user enables it.
+    Generate a concise and engaging reply to a YouTube comment based on the user's role and mood.
+
+    Parameters:
+    - comment_text (str): The YouTube comment text.
+    - role (str): The role of the responder ("owner" or "community").
+    - mood (str): The mood of the response ("casual", "funny", "professional").
+    - append_signature (bool): Whether to append 'Cheers, Abhi' as a signature.
+
+    Returns:
+    - str: The generated reply.
     """
     try:
         # Role-specific instructions
         role_instructions = {
             "owner": (
-                "You are the owner of the YouTube channel. Respond professionally, taking credit for the content, "
-                "showing gratitude, and keeping responses concise and engaging."
+                "You are Abhi Duggal, the owner of the YouTube channel. Respond warmly, professionally, and concisely, "
+                "showing gratitude for the commenter's engagement. Keep responses short and end with a question when appropriate. "
+                "Sign off with 'Cheers, Abhi' if applicable."
             ),
             "community": (
-                "You are a community member. Engage in a friendly, conversational tone, adding value to the conversation "
-                "without taking credit for the content or saying 'thank you.' Keep responses short and meaningful."
+                "You are responding on behalf of the community for the YouTube channel. Your goal is to foster meaningful, "
+                "positive conversations. Highlight shared experiences, keep responses brief, and encourage engagement by "
+                "Only ask questions if they are crucial to creating a meaningful conversation or engaging with the audience in a thoughtful way. "
+                "Keep responses brief and express gratitude, avoiding phrases that could imply ownership  use I'm glad you liked it or Thanks for the kind words, rather than taking credit"
             ),
         }
+
 
         # Mood-specific instructions
         mood_instructions = {
@@ -367,12 +351,18 @@ def generate_reply(comment_text, role, mood="casual", append_signature=False):
             "professional": "Your tone should be formal, respectful, and concise.",
         }
 
-        # Combine role and mood instructions
-        role_text = role_instructions.get(role, role_instructions["community"])
-        mood_text = mood_instructions.get(mood, mood_instructions["casual"])
+        # Validate role and mood
+        if role not in role_instructions:
+            raise ValueError(f"Invalid role: {role}. Expected 'owner' or 'community'.")
+        if mood not in mood_instructions:
+            raise ValueError(f"Invalid mood: {mood}. Expected 'casual', 'funny', or 'professional'.")
 
-        # Generate a reply using OpenAI
-        response = openai.ChatCompletion.create(
+        # Combine role and mood instructions
+        role_text = role_instructions[role]
+        mood_text = mood_instructions[mood]
+
+        # OpenAI API Call using updated client structure
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {
@@ -384,25 +374,24 @@ def generate_reply(comment_text, role, mood="casual", append_signature=False):
                     "content": f"Comment: {comment_text}\nReply accordingly."
                 }
             ],
-            max_tokens=80,
+            max_tokens=150,
             temperature=0.7
         )
 
-        reply = response['choices'][0]['message']['content'].strip()
+        # Extract and process the reply
+        reply = response.choices[0].message.content.strip()
 
         # Conditionally append the signature
         if role == "owner" and append_signature:
-            reply += " Cheers, Abhi."
+            reply += "\n\nCheers,\nAbhi"
 
         return reply
+
     except Exception as e:
         print(f"Error generating reply for role {role} and mood {mood}: {e}")
         return "We appreciate your comment and support!"
 
 
 
-
-
-
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
