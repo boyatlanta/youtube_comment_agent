@@ -6,15 +6,10 @@ from flask import Flask, request, jsonify, render_template
 from youtube_auth import authenticate_youtube_api
 from youtube_comments import fetch_comments, post_reply
 from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import Flow
 import time
 from flask_cors import CORS
-CORS(app)
-flow = Flow.from_client_secrets_file(
-    'client_secrets.json',
-    scopes=['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email'],
-    redirect_uri='https://youtube-comment-agent.vercel.app/api/callback'  # Make sure this matches!
-)
+
+
 
 # Set API keys and URLs
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "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")  # Ensure this is set in your environment
@@ -34,9 +29,8 @@ print(f"OpenAI API Key being used: {openai.api_key}")  # Debug line
 processed_comment_ids = set()
 
 # Flask App
-app = Flask(__name__)  # Default template folder (at the same level as `api/`)
-
-CORS(app)  # Enable CORS
+app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 
 @app.route('/')
@@ -49,7 +43,7 @@ def home():
 from flask import Flask, request, redirect
 
 
-@app.route('/api/callback', methods=['GET'])
+@app.route('/callback', methods=['GET'])
 def callback():
     return "Callback route is working!"
 
@@ -68,7 +62,7 @@ def favicon():
 pending_replies = []
 
 
-@app.route('/api/process', methods=['POST'])
+@app.route('/process', methods=['POST'])
 def process():
     """
     Mock `/process` endpoint to test Vercel deployment.
@@ -95,7 +89,7 @@ def process():
         ]
     })
 
-@app.route('/api/approve', methods=['POST'])
+@app.route('/approve', methods=['POST'])
 def approve():
     """
     Mock `/approve` endpoint to test Vercel deployment.
@@ -111,7 +105,7 @@ def approve():
 if __name__ == "__main__":
     app.run(debug=True)
 
-@app.route('/api/process', methods=['POST'])
+@app.route('/process', methods=['POST'])
 def process_youtube_comments():
     """
     Fetch comments (including subcomments), filter out comments already answered by the bot,
