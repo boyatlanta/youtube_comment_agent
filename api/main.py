@@ -8,7 +8,7 @@ import time
 
 # Set API keys directly
 openai.api_key = "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"  # Replace with your actual OpenAI API key
-YOUTUBE_API_KEY = "AIzaSyA8qclHhZNDRlaJ2ZBUmy-3ocO638rhXFE"  # Replace with your actual YouTube API key
+YOUTUBE_API_KEY = "xxx"  # Replace with your actual YouTube API key
 
 # Check for missing API keys
 if not openai.api_key or not YOUTUBE_API_KEY:
